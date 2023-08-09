@@ -14,7 +14,7 @@ class Settings(aigpy.model.ModelBase):
     saveCovers = True
     language = 0
     lyricFile = False
-    apiKeyIndex = 0
+    apiKeyIndex = 4
     showProgress = False
     showTrackInfo = True
     saveAlbumInfo = False
