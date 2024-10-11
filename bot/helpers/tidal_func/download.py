@@ -1,4 +1,5 @@
 import os
+import subprocess
 import aigpy
 
 from bot.logger import LOGGER
@@ -116,12 +117,24 @@ async def downloadTrack(track: Track, album=None, playlist=None, partSize=104857
         metadata['thumbnail'] = TIDAL_API.getCoverUrl(album.cover, "80", "80")
         await set_metadata(path, metadata)
 
-        await handle_upload(user, path, metadata)
+        # Convert the FLAC file to MP3 using ffmpeg
+        mp3_path = path.replace('.flac', '.mp3')
+        ffmpeg_cmd = ['ffmpeg', '-i', path, '-codec:a', 'libmp3lame', '-qscale:a', '2', mp3_path]
+        
+        try:
+            subprocess.run(ffmpeg_cmd, check=True)
+            LOGGER.debug(f"Successfully converted {track.title} to MP3")
+            os.remove(path)  # Remove the original FLAC file after conversion
+        except subprocess.CalledProcessError as e:
+            await LOGGER.error(f"FFmpeg conversion failed for track {track.title}. Error: {str(e)}", user)
+            return
+
+        await handle_upload(user, mp3_path, metadata)
 
         # Remove the files after uploading
-        os.remove(path)
+        os.remove(mp3_path)
 
-        LOGGER.debug("Succesfully Downloaded " + track.title)
+        LOGGER.debug("Successfully Downloaded and Converted " + track.title)
     except Exception as e:
         await LOGGER.error(f"DL Track[{track.title}] failed.{str(e)}", user)
 
